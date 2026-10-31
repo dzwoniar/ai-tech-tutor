@@ -1,0 +1,14 @@
+{
+  "name": "ai-tech-tutor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lokalne CLI zamieniające transkrypty sesji pomocy technicznej w instrukcje Markdown i HTML.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test test/smoke.test.mjs",
+    "lista": "node src/cli.mjs lista"
+  }
+}
