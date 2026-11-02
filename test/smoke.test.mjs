@@ -1,8 +1,5 @@
-// Smoke E2E — scenariusz z docs/PLAN-WDROZENIA.md / planu buildu (serialized-yawning-sky.md).
-// Fixtures WYŁĄCZNIE syntetyczne. AUTH-01/02/03 i M3 NIE są pokryte automatycznym
-// testem — zgodnie z samym PRD to kontrola ręczna (ręczny przegląd wygenerowanego MD
-// pod kątem haseł), nie coś weryfikowalne w kodzie przy tej architekturze (DECYZJE.md#3).
-// Testy poniżej pokrywają SES/GEN/LIB oraz EC-01/03/05.
+// Local session and guide scenarios. Fixtures are synthetic; no provider APIs.
+// Detecting passwords or sensitive screenshot content still requires manual review.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
@@ -31,6 +28,25 @@ function patchStartedAt(sessionId) {
 }
 
 test('AI-Tech-Tutor — smoke', async (t) => {
+  await t.test('extractSteps: malformed JSON shapes are skipped without losing later steps', () => {
+    const timestamp = '2026-07-19T10:00:00.000Z';
+    const dir = mkdtempSync(join(tmpdir(), 'tutor-malformed-'));
+    const path = join(dir, 'fixture.jsonl');
+    writeFileSync(path, [null, true, [], 42].map(line).join('') + line({
+      type: 'assistant', timestamp, message: { content: [
+        null, 42, { type: 'text', text: 123 }, { type: 'image' },
+        { type: '__proto__' }, { type: 'text', text: 'Valid step' },
+      ] },
+    }), 'utf8');
+    const time = Date.parse(timestamp);
+    const { steps, meta } = extractSteps(path, { fromMs: time, toMs: time });
+    assert.deepEqual(steps.map((step) => step.text), ['Valid step']);
+    assert.equal(meta.malformedLines, 4);
+    assert.equal(meta.skippedBlockTypes.invalid, 2);
+    assert.equal(meta.skippedBlockTypes.image, 1);
+    assert.equal(meta.skippedBlockTypes.__proto__, 1);
+  });
+
   await t.test('extractSteps: allowlist typów/bloków + okno czasowe (unit, bez pełnego cyklu sesji)', () => {
     const base = Date.parse('2026-07-19T10:00:00.000Z');
     const dir = mkdtempSync(join(tmpdir(), 'tutor-extract-'));

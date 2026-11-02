@@ -1,6 +1,5 @@
 // Lokalizacja i parsowanie transkryptów Claude Code (SES-04/EC-01/EC-03/EC-05).
-// Format transkryptu jest niepubliczny — zweryfikowany empirycznie na realnych plikach .jsonl
-// (patrz plan buildu w serialized-yawning-sky.md). Allowlist, nie denylist: nieznane typy
+// Format transkryptu jest niepubliczny. Allowlist, nie denylist: nieznane typy
 // linii/bloków są pomijane i zliczane w meta, nie wywalają parsera.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -52,7 +51,7 @@ export function resolveTranscript(session, { override = null } = {}) {
 export function extractSteps(path, { fromMs, toMs }) {
   const raw = readFileSync(path, 'utf8');
   const steps = [];
-  const meta = { totalLines: 0, usedLines: 0, skippedSidechain: 0, skippedBlockTypes: {}, malformedLines: 0 };
+  const meta = { totalLines: 0, usedLines: 0, skippedSidechain: 0, skippedBlockTypes: Object.create(null), malformedLines: 0 };
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue;
     meta.totalLines += 1;
@@ -60,6 +59,10 @@ export function extractSteps(path, { fromMs, toMs }) {
     try {
       entry = JSON.parse(line);
     } catch {
+      meta.malformedLines += 1;
+      continue;
+    }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
       meta.malformedLines += 1;
       continue;
     }
@@ -76,12 +79,13 @@ export function extractSteps(path, { fromMs, toMs }) {
       : Array.isArray(rawContent) ? rawContent : [];
     const step = { role: entry.type, timestamp: entry.timestamp, text: '', images: [] };
     for (const block of blocks) {
-      if (block.type === 'text') {
+      const type = block && typeof block.type === 'string' ? block.type : 'invalid';
+      if (type === 'text' && typeof block.text === 'string') {
         step.text += (step.text ? '\n' : '') + block.text;
-      } else if (block.type === 'image') {
+      } else if (type === 'image' && block.source?.type === 'base64' && typeof block.source.data === 'string') {
         step.images.push(block.source.data);
       } else {
-        meta.skippedBlockTypes[block.type] = (meta.skippedBlockTypes[block.type] || 0) + 1;
+        meta.skippedBlockTypes[type] = (meta.skippedBlockTypes[type] || 0) + 1;
       }
     }
     if (!step.text && step.images.length === 0) continue;

@@ -16,7 +16,7 @@ node src/cli.mjs stop --transkrypt /pełna/ścieżka/do/syntetycznego.jsonl
 node src/cli.mjs lista
 ```
 
-`generuj --ostatnia` tworzy częściowy przewodnik; `stop` zamyka sesję. Bez jawnej ścieżki parser szuka transkryptów zwykłych lokalnych sesji Claude Code. Do demonstracji użyj wyłącznie własnego syntetycznego transkryptu. `npm test` sprawdza sześć scenariuszy z izolowanym katalogiem tymczasowym, bez usług zewnętrznych.
+`generuj --ostatnia` tworzy częściowy przewodnik; `stop` zamyka sesję. Bez jawnej ścieżki parser szuka transkryptów zwykłych lokalnych sesji Claude Code. Do demonstracji użyj wyłącznie własnego syntetycznego transkryptu. `npm test` sprawdza cykl sesji, generowanie i odporność parsera na niepoprawną strukturę JSON w izolowanym katalogu tymczasowym, bez usług zewnętrznych.
 
 ## Mapa kodu
 
